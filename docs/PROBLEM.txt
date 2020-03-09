@@ -71,3 +71,5 @@ Expected Output 2:
 2 1 N
 1 0 S
 ==================================================================
+
+The final "1 0 S" in the above apparently should be "2 0 S".

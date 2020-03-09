@@ -1,1 +1,2 @@
-import "./prettify-number-component";
+import "./mars-rover-component";
+import "./plateau-component";

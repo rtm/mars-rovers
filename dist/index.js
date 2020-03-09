@@ -2254,6 +2254,56 @@ found at http://polymer.github.io/PATENTS.txt
 */
 const supportsAdoptingStyleSheets = ('adoptedStyleSheets' in Document.prototype) &&
     ('replace' in CSSStyleSheet.prototype);
+const constructionToken = Symbol();
+class CSSResult {
+    constructor(cssText, safeToken) {
+        if (safeToken !== constructionToken) {
+            throw new Error('CSSResult is not constructable. Use `unsafeCSS` or `css` instead.');
+        }
+        this.cssText = cssText;
+    }
+    // Note, this is a getter so that it's lazy. In practice, this means
+    // stylesheets are not created until the first element instance is made.
+    get styleSheet() {
+        if (this._styleSheet === undefined) {
+            // Note, if `adoptedStyleSheets` is supported then we assume CSSStyleSheet
+            // is constructable.
+            if (supportsAdoptingStyleSheets) {
+                this._styleSheet = new CSSStyleSheet();
+                this._styleSheet.replaceSync(this.cssText);
+            }
+            else {
+                this._styleSheet = null;
+            }
+        }
+        return this._styleSheet;
+    }
+    toString() {
+        return this.cssText;
+    }
+}
+const textFromCSSResult = (value) => {
+    if (value instanceof CSSResult) {
+        return value.cssText;
+    }
+    else if (typeof value === 'number') {
+        return value;
+    }
+    else {
+        throw new Error(`Value passed to 'css' function must be a 'css' function result: ${value}. Use 'unsafeCSS' to pass non-literal values, but
+            take care to ensure page security.`);
+    }
+};
+/**
+ * Template tag which which can be used with LitElement's `style` property to
+ * set element styles. For security reasons, only literal string values may be
+ * used. To incorporate non-literal values `unsafeCSS` may be used inside a
+ * template string part.
+ */
+const css = (strings, ...values) => {
+    const cssText = values.reduce((acc, v, idx) => acc + textFromCSSResult(v) + strings[idx + 1], strings[0]);
+    return new CSSResult(cssText, constructionToken);
+};
 
 /**
  * @license
@@ -2453,75 +2503,76 @@ LitElement['finalized'] = true;
 LitElement.render = render$1;
 
 /**
- * @file Utility for prettifying numbers.
- * @author Bob Myers
+ * @file Implement little web component to display the mars rover app.
  */
-/**
- * Round a number and format to at most one decimal place.
- * @private
- *
- * @param {number} m - number to process
- * @returns {string} Rounded number with zero or one decimal places.
- *
- * See {@link docs/DESIGN-NOTES.md|design notes}
- */
-const round = (m) => {
-    const rounded = Math.round(m * 10) / 10;
-    return rounded.toFixed(Number.isInteger(rounded) ? 0 : 1);
-};
-/** Prettify a number by taking the first few significant digits and adding a units suffix.
- * Numbers under one million, including negative numbers, are returned as is.
- * The odd-looking "-5e4" and "-5e7" ensure that numbers such as 999,999,999 are
- * formatted as 1B, and not 1000M.
- *
- * @param {number} n - number to be prettified.
- * @returns {string} prettified version of number
- */
-function prettifyNumber(n) {
-    if (n < 1e6)
-        return n.toString();
-    if (n < 1e9 - 5e4)
-        return round(n / 1e6) + "M";
-    if (n < 1e12 - 5e7)
-        return round(n / 1e9) + "B";
-    return round(n / 1e12) + "T";
-}
-
-/**
- * @file Implement little web component to show off the prettify number utility.
- */
-let PrettifyNumber = class PrettifyNumber extends LitElement {
+let MarsRoverComponent = class MarsRoverComponent extends LitElement {
     constructor() {
         super(...arguments);
-        this.input = "";
-        this.output = "";
+        this.plateau = { x: 4, y: 4 };
     }
     render() {
         return html `
-      <input type="text" .value=${this.input} @input=${this.handleInput} />
-      <p style="font-size: larger; ">${this.output}</p>
+      <h2>Select case></h2>
+      <p>
+        <select>
+          <option value="1">Case 1</option>
+          <option value="2">Case 2</option>
+        </select>
+      </p>
+
+      <plateau-component .plateau=${this.plateau}></plateau-component>
     `;
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.prettify();
-    }
-    prettify() {
-        const value = this.input;
-        this.output = value === "" ? "" : isNaN(+value) ? "Invalid input" : prettifyNumber(+value);
-    }
-    handleInput(event) {
-        this.input = event.target.value;
-        this.prettify();
     }
 };
 __decorate([
     property()
-], PrettifyNumber.prototype, "input", void 0);
+], MarsRoverComponent.prototype, "plateau", void 0);
+MarsRoverComponent = __decorate([
+    customElement("mars-rover")
+], MarsRoverComponent);
+
+/**
+ * @file Web component to display the plateau and the rovers thereon.
+ */
+let PlateauComponent = class PlateauComponent extends LitElement {
+    static get styles() {
+        return css `
+      .square {
+        border: 1px solid gray;
+        font-size: 36px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    `;
+    }
+    render() {
+        if (!this.plateau)
+            return html ``;
+        const { x, y } = this.plateau;
+        const squares = Array.from(Array(y + 1), (_, i) => Array.from(Array(x + 1), (_, j) => html `
+            <div class="square" style="grid-row: {i}; grid-column: {j}"></div>
+          `));
+        return html `
+      <style>
+        .plateau {
+          display: grid;
+          grid-template-columns: repeat(${this.plateau.x + 1}, 120px);
+          grid-template-rows: repeat(${this.plateau.y + 1}, 120px);
+        }
+      </style>
+
+      <div class="plateau">
+        ${squares}
+        <div class="square" style="grid-row: 3; grid-column: 2; ">&#x1F916;</div>
+      </div>
+    `;
+    }
+};
 __decorate([
     property()
-], PrettifyNumber.prototype, "output", void 0);
-PrettifyNumber = __decorate([
-    customElement("prettify-number")
-], PrettifyNumber);
+], PlateauComponent.prototype, "plateau", void 0);
+PlateauComponent = __decorate([
+    customElement("plateau-component")
+], PlateauComponent);
 //# sourceMappingURL=index.js.map

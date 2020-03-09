@@ -10,22 +10,10 @@ Install node/npm.
 
 This is a TypeScript program designed for use in node.js.
 
-## COMPONENT AND HTML INTERFACE
+## WEB CLIENT
 
-We have provided a web component (build using `lit-element`) around
-this simulation and made it available through a web
-page.
-
-    $ npm start
-
-which is equivalent to
-
-    $ npm run build    # bundle the component and its dependencies
-    $ npm run serve    # run a local server
-
-Then, visit `localhost:8080`.
-
-The web assets are found in the `dist` directory.
+There is a web client under development, but it is not finished.
+You can see the WIP in the form of the `*.component.ts` files.
 
 ## DEVELOPMENT
 
@@ -41,6 +29,5 @@ artifacts in the `artifacts/test-results` directory, including
 
 ## SEE ALSO
 
-* [spec](docs/SPEC.md)
 * [design notes](docs/DESIGN-NOTES.md)
 * [Problem statement](docs/PROBLEM.txt)
